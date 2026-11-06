@@ -2,13 +2,15 @@
 export const SAHARA = '#d3bf9f';
 export const WOOD_TINT = '#f3dcc2';
 
+import { stoolRow } from './items.js';
+
 let _id = 0;
 export const uid = (p = 'm') => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
 
 const mod = (type, w, extra = {}) => ({ id: uid(), type, w, ...extra });
 
 export function defaultState() {
-  return {
+  const s = {
     version: 1,
     room: { width: 6.0, depth: 6.2, height: 3.0, wallColor: '#efebe4', floor: 'floor_oak' },
     window: { width: 2.6, height: 0.75, sill: 1.25, center: 3.0 },
@@ -36,6 +38,8 @@ export function defaultState() {
       mod('drawers', 0.75, { mat: 'walnut', color: WOOD_TINT }),
     ],
   };
+  s.items = stoolRow(s, 3);
+  return s;
 }
 
 const KEY = 'kitchen-lab-config-v1';
@@ -52,6 +56,7 @@ function migrate(o) {
   const d = defaultState();
   for (const k of ['room', 'window', 'dims', 'island', 'style']) o[k] = { ...d[k], ...(o[k] || {}) };
   o.islandModules ||= d.islandModules;
+  if (!Array.isArray(o.items)) o.items = stoolRow(o, o.island.stools ?? 3);
   return o;
 }
 function loadAssets() {
@@ -119,6 +124,11 @@ class Store {
 }
 
 export const store = new Store();
+
+export function findItem(state, id) {
+  const i = (state.items || []).findIndex(t => t.id === id);
+  return i >= 0 ? { index: i, it: state.items[i], arr: state.items } : null;
+}
 
 // עזר: מציאת מודול לפי מזהה
 export function findModule(state, id) {

@@ -1,4 +1,5 @@
-import { store, findModule, isTall, uid, SAHARA, WOOD_TINT } from './state.js';
+import { store, findModule, findItem, isTall, uid, SAHARA, WOOD_TINT } from './state.js';
+import { ITEM_TYPES, stoolRow } from './items.js';
 import { TYPE_LABELS, UPPER_LABELS } from './cabinets.js';
 import { hasBackup } from './share.js';
 import { FRONT_MATS, SWATCHES, WOOD_TINTS, WALL_SWATCHES, TEXTURE_SETS, COUNTER_MATS, FLOOR_MATS } from './materials.js';
@@ -112,6 +113,7 @@ export class Editor {
   selTab() {
     const sel = this.app.selected;
     const st = store.state;
+    if (sel && sel.part === 'item') return this.itemPanel(sel.id);
     const f = sel && findModule(st, sel.id);
     if (!f) {
       return h('div', { class: 'empty', html: `<b>לחץ על ארון במודל</b> כדי לבחור אותו ולשנות רוחב, גובה, סוג, חומר וצבע.<br><br>במצב <b>עריכה</b> לחיצה בוחרת. במצב <b>צפייה</b> לחיצה פותחת דלתות ומגירות.<br><br>אפשר גם לבחור מהרשימה בטאב <b>מודולים</b>.` });
@@ -132,6 +134,7 @@ export class Editor {
       return out;
     }
     out.push(h('div', { class: 'sel-title' }, TYPE_LABELS[m.type] || m.type), h('div', { class: 'sel-sub' }, `${zoneName} • מודול ${index + 1} מתוך ${arr.length}`));
+    if (zone === 'islandModules') out.push(h('div', { class: 'status' }, '✥ גרור את האי במודל כדי להזיז אותו (המעבר מתעדכן)'));
     if (zone === 'wall') out.push(this.wallStatus());
     out.push(this.num('רוחב', () => findModule(store.state, m.id)?.m.w || m.w, (s, v) => { const x = findModule(s, m.id); if (x) x.m.w = v; }, isTall(m) ? 40 : 15, 150, 1));
     if (isTall(m)) out.push(this.num('גובה הטור', () => findModule(store.state, m.id)?.m.h || st.room.height, (s, v) => { const x = findModule(s, m.id); if (x) x.m.h = v; }, 200, Math.round(st.room.height * 100), 1));
@@ -167,6 +170,34 @@ export class Editor {
       h('button', { class: 'btn danger', onclick: () => { store.change(s => { const x = findModule(s, m.id); x.arr.splice(x.index, 1); }, 'struct'); this.app.select(null); } }, 'מחק מודול')));
     out.push(h('p', { class: 'note' }, 'טיפ: "הזז" מחליף מקום עם המודול השכן. אחרי שינוי רוחב אפשר להשתמש ב"התאם לרוחב הקיר" בטאב מודולים.'));
     return out;
+  }
+
+  itemPanel(id) {
+    const f = findItem(store.state, id);
+    if (!f) return h('div', { class: 'empty' }, 'הפריט לא נמצא');
+    const it = f.it, T = ITEM_TYPES[it.type] || { label: it.type };
+    const set = (mut) => store.change(s => { const x = findItem(s, id); if (x) mut(x.it); }, 'struct');
+    const rot = (d) => set(x => { x.rot = ((x.rot || 0) + d + 360) % 360; });
+    return [
+      h('div', { class: 'sel-title' }, T.label), h('div', { class: 'sel-sub' }, 'פריט חופשי על הרצפה'),
+      h('div', { class: 'status' }, '✥ גרור את הפריט במודל כדי להזיז אותו. הוא נשאר צמוד לרצפה ולא נכנס בקירות, בארונות או באי.'),
+      this.num('מיקום לרוחב (0 = מרכז קיר המטבח)', () => findItem(store.state, id)?.it.x ?? 0, (s, v) => { const x = findItem(s, id); if (x) x.it.x = v; }, -Math.round(store.state.room.width * 50), Math.round(store.state.room.width * 50), 1),
+      this.num('מרחק מקיר המטבח', () => findItem(store.state, id)?.it.z ?? 0, (s, v) => { const x = findItem(s, id); if (x) x.it.z = v; }, 0, Math.round(store.state.room.depth * 100), 1),
+      h('div', { class: 'field' }, h('label', {}, `סיבוב: ${Math.round(it.rot || 0)}°`),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn', onclick: () => rot(-15) }, '↻ 15°'), h('button', { class: 'btn', onclick: () => rot(-90) }, '↻ 90°'),
+          h('button', { class: 'btn', onclick: () => rot(90) }, '↺ 90°'), h('button', { class: 'btn', onclick: () => rot(15) }, '↺ 15°'))),
+      h('div', { class: 'row', style: 'margin-top:10px' },
+        h('button', { class: 'btn', onclick: () => { const nid = uid('it'); store.change(s => { const x = findItem(s, id); s.items.splice(x.index + 1, 0, { ...x.it, id: nid, x: x.it.x + 0.5 }); }, 'struct'); this.app.select({ id: nid, part: 'item', zone: 'items' }); } }, 'שכפל'),
+        h('button', { class: 'btn danger', onclick: () => { store.change(s => { const x = findItem(s, id); if (x) x.arr.splice(x.index, 1); }, 'struct'); this.app.select(null); } }, 'מחק')),
+    ];
+  }
+  addItem(type) {
+    const id = uid('it'); const s = store.state;
+    const z = Math.min(s.room.depth - 0.8, (this.app.islandBackZ?.() ?? s.room.depth - 1.5) + 1.0);
+    store.change(st => { (st.items ||= []).push({ id, type, x: 0, z, rot: type === 'stool' ? 180 : 0 }); }, 'struct');
+    this.app.select({ id, part: 'item', zone: 'items' });
+    this.app.toast('הפריט נוסף – גרור אותו למקום');
   }
 
   wallStatus() {
@@ -207,6 +238,13 @@ export class Editor {
     };
     list('wall', 'קיר המטבח');
     list('islandModules', 'האי');
+    out.push(h('h3', {}, 'רהיטים ופריטים על הרצפה'));
+    out.push(h('p', { class: 'note' }, 'במצב עריכה – גוררים פריט במודל כדי להזיז אותו על הרצפה. R מסובב.'));
+    out.push(h('div', { class: 'list' }, ...(s.items || []).map((it, i) => h('div', { class: 'it' + (this.app.selected?.id === it.id ? ' on' : ''), onclick: () => this.app.select({ id: it.id, part: 'item', zone: 'items' }) },
+      h('span', { class: 'n' }, String(i + 1)), h('span', {}, ITEM_TYPES[it.type]?.label || it.type), h('span', { class: 'w' }, `${Math.round(it.x * 100)}, ${Math.round(it.z * 100)}`)))));
+    out.push(h('div', { class: 'row', style: 'margin-top:8px;align-items:end' },
+      h('div', { style: 'flex:2' }, this.select('הוסף פריט', this.addItemType || 'chair', Object.entries(ITEM_TYPES).map(([k, v]) => [k, v.label]), (v) => { this.addItemType = v; })),
+      h('button', { class: 'btn primary', style: 'margin-bottom:10px', onclick: () => this.addItem(this.addItemType || 'chair') }, '+ הוסף')));
     return out;
   }
   addModule(zone) {
@@ -282,7 +320,8 @@ export class Editor {
     out.push(this.num('הזזה הצידה (ימינה +)', () => I.offsetX, (st, v) => { st.island.offsetX = v; }, -150, 150, 1));
     out.push(h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: I.waterfall, onchange: (e) => store.change(st => { st.island.waterfall = e.target.checked; }, 'struct') }), 'מפל שיש בקצוות (Waterfall)'));
     out.push(h('h3', {}, 'ישיבה ותאורה'));
-    out.push(this.chips('מספר כיסאות בר', String(I.stools), ['0', '1', '2', '3', '4', '5'].map(n => [n, n]), (v) => store.change(st => { st.island.stools = Number(v); }, 'struct')));
+    const nSt = (s.items || []).filter(t => t.type === 'stool').length;
+    out.push(this.chips('מספר כיסאות בר (מסדר מחדש בשורה)', String(nSt), ['0', '1', '2', '3', '4', '5'].map(n => [n, n]), (v) => store.change(st => { st.island.stools = Number(v); st.items = (st.items || []).filter(t => t.type !== 'stool').concat(stoolRow(st, Number(v))); }, 'struct')));
     out.push(this.num('גובה מנורות מעל המשטח', () => I.pendantH, (st, v) => { st.island.pendantH = v; }, 55, 130, 1));
     out.push(h('h3', {}, 'גב האי (צד הישיבה)'));
     out.push(...this.finishEditor({ mat: I.backMat, color: I.backColor }, (st, p) => { if (p.mat) st.island.backMat = p.mat; if (p.color) st.island.backColor = p.color; }));

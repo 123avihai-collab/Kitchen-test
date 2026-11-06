@@ -3,6 +3,7 @@ import { box, cyl, roundRectShape, roundRectPath, boxUV, cm } from './util.js';
 import { isTall } from './state.js';
 import { islandPosZ, islandCenterZ } from './room.js';
 import * as A from './appliances.js';
+import { buildItems } from './items.js';
 
 // בניית המטבח: ארונות תחתונים, עליונים, טורים גבוהים, משטחי עבודה, חיפוי, תאורת LED, האי והכיסאות
 const FT = 0.019;   // עובי חזית
@@ -97,6 +98,7 @@ export function buildKitchen(state, lib) {
   // ---------- האי ----------
   const isl = buildIsland(K);
   root.add(isl);
+  const items = buildItems(s, lib); root.add(items);
   for (const p of K.extra || []) root.add(p);
   return { group: root, K };
 }
@@ -366,17 +368,9 @@ function buildIsland(K) {
   const bowl = A.fruitBowl(lib); bowl.position.set(sinks.length ? (sinks[0] > 0 ? -L * 0.3 : L * 0.3) : 0, d.counterH, (zMin + zMax) / 2 - 0.08); g.add(bowl);
   const vase = A.vaseWithBranches(lib); vase.position.set(sinks.length ? (sinks[0] > 0 ? -L * 0.42 + 0.3 : L * 0.42 - 0.3) : 0.4, d.counterH, zMin + 0.2); g.add(vase);
 
-  // כיסאות בר בצד הישיבה
-  const n = Math.max(0, Math.min(6, I.stools | 0));
-  for (let i = 0; i < n; i++) {
-    const st = A.stool(lib, d.counterH - 0.25);
-    st.position.set(-L / 2 + L * (i + 0.5) / n, 0, zMin - 0.1);
-    st.rotation.y = 0; // פונה אל האי
-    st.userData.noSelect = true;
-    g.add(st);
-  }
   // מיקום וסיבוב: חזיתות האי פונות אל קיר המטבח
   g.rotation.y = Math.PI;
+  g.userData.drag = { kind: 'island' };
   g.position.set(I.offsetX || 0, 0, islandPosZ(s));
   g.updateMatrixWorld(true);
 
@@ -386,12 +380,15 @@ function buildIsland(K) {
   for (let i = -1; i <= 1; i++) {
     const p = A.pendant(lib, s.room.height, d.counterH + I.pendantH, s.style.lighting === 'evening');
     p.position.x = (I.offsetX || 0) + i * spacing; p.position.z = pz;
-    p.userData.noSelect = true;
+    p.userData.noSelect = true; p.userData.followIsland = true;
     K.extra = K.extra || []; K.extra.push(p);
   }
   // התנגשות והמידות
   const bb = new THREE.Box3().setFromObject(top); bb.min.y = 0; bb.expandByScalar(0.08);
   K.colliders.push(bb);
+  K.islandTop = bb.clone().expandByScalar(-0.08);
+  // גוף האי בלי בליטת המשטח – כיסאות יכולים להיכנס מתחתיה
+  K.islandBody = new THREE.Box3(new THREE.Vector3((I.offsetX || 0) - totalL / 2, 0, islandPosZ(s) - (Di + 0.02)), new THREE.Vector3((I.offsetX || 0) + totalL / 2, 1, islandPosZ(s) + 0.02));
   K.island = { L: totalL, zFront: islandPosZ(s) - (Di + 0.04), zBack: islandPosZ(s) - zMin, x0: (I.offsetX || 0) - totalL / 2, x1: (I.offsetX || 0) + totalL / 2 };
   // מידות מודולי האי
   let xx = -L / 2;

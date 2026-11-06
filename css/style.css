@@ -172,3 +172,8 @@ body.cam-walk .fab { display: none; }
   body.panel-open:not(.panel-min) .fab { display: none; }
   body.panel-open .fab { right: 12px; }
 }
+
+/* תווית גרירה */
+#drag-label { position: fixed; left: 0; top: 0; z-index: 30; display: none; pointer-events: none; background: #ff7a1a; color: #fff; font-weight: 600; font-size: 13px;
+  padding: 5px 10px; border-radius: 8px; white-space: nowrap; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); direction: rtl; }
+body.dragging, body.dragging #c { cursor: grabbing !important; }

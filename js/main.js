@@ -7,7 +7,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
-import { store, findModule } from './state.js';
+import { store, findModule, findItem } from './state.js';
 import { MaterialLibrary } from './materials.js';
 import { buildRoom, Lighting, islandCenterZ } from './room.js';
 import { buildKitchen } from './cabinets.js';
@@ -15,6 +15,7 @@ import { Interaction } from './interaction.js';
 import { CameraRig, EYE } from './controls.js';
 import { Measure, Dimensions } from './measure.js';
 import { Editor } from './editor.js';
+import { FloorDrag } from './drag.js';
 import { ShareDialog, loadFromUrl, showSharedBanner, restoreBackup } from './share.js';
 import { disposeTree, isMobile } from './util.js';
 
@@ -140,6 +141,7 @@ const app = {
     return c.toDataURL('image/jpeg', 0.82);
   },
   openShare() { share.open(); },
+  islandBackZ() { return lastK?.island?.zBack; },
   restoreMine() { if (restoreBackup()) { this.select(null); this.toast('התכנון שלך שוחזר'); } },
   screenshot() {
     render();
@@ -150,6 +152,7 @@ window.__app = { app, store, scene, renderer, camera, rig, inter, lib, get kitch
 
 let editor = null;
 let share = null;
+const drag = new FloorDrag({ canvas, camera, inter, rig, app, requestRender: () => requestRender(), getKitchen: () => kitchenG, getK: () => lastK, getOutline: () => inter.outline });
 
 function findSelectGroup(sel) {
   if (!sel || !kitchenG) return null;
@@ -220,7 +223,8 @@ canvas.addEventListener('pointermove', (e) => {
   const now = performance.now(); if (now - hoverT < 50) return; hoverT = now;
   if (app.mode === 'measure') { const h = inter.raycast(e.clientX, e.clientY); measure.preview(h?.point); requestRender(); canvas.style.cursor = 'crosshair'; return; }
   const p = inter.pick(e.clientX, e.clientY);
-  canvas.style.cursor = p && ((app.mode === 'view' && p.openable) || (app.mode === 'edit' && p.select)) ? 'pointer' : '';
+  let dragOk = false; if (app.mode === 'edit' && p) { let o = p.hit.object; while (o) { if (o.userData.drag) { dragOk = true; break; } o = o.parent; } }
+  canvas.style.cursor = dragOk ? 'grab' : p && ((app.mode === 'view' && p.openable) || (app.mode === 'edit' && p.select)) ? 'pointer' : '';
 });
 
 function onTap(x, y) {
@@ -248,6 +252,8 @@ addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if ((e.ctrlKey || e.metaKey) && k === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); }
   else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); store.redo(); }
+  else if (k === 'r' && app.selected?.part === 'item') { const id = app.selected.id; store.change(s => { const f = findItem(s, id); if (f) f.it.rot = ((f.it.rot || 0) + (e.shiftKey ? -15 : 15) + 360) % 360; }, 'struct'); }
+  else if ((k === 'delete' || k === 'backspace') && app.selected?.part === 'item') { const id = app.selected.id; store.change(s => { const f = findItem(s, id); if (f) f.arr.splice(f.index, 1); }, 'struct'); app.select(null); }
   else if ((k === 'delete' || k === 'backspace') && app.selected && app.selected.part === 'base') {
     const id = app.selected.id; store.change(s => { const f = findModule(s, id); if (f) f.arr.splice(f.index, 1); }, 'struct'); app.select(null);
   } else if (k === 'escape') { app.select(null); measure.cancelPending(); requestRender(); }
@@ -278,7 +284,7 @@ addEventListener('resize', () => {
 // ---------- סרגל כלים ----------
 const HINTS = {
   view: 'לחיצה על דלת, מגירה, מקרר, תנור או מדיח – פותחת. גרירה – סיבוב המצלמה',
-  edit: 'לחץ על ארון כדי לבחור ולערוך אותו',
+  edit: 'לחץ על ארון לבחירה • גרור את האי, כיסא או רהיט כדי להזיז אותו על הרצפה',
   measure: 'לחץ על שתי נקודות כדי למדוד מרחק',
 };
 let hintT = 0;
