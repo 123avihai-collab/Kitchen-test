@@ -1,5 +1,6 @@
 import { store, findModule, isTall, uid, SAHARA, WOOD_TINT } from './state.js';
 import { TYPE_LABELS, UPPER_LABELS } from './cabinets.js';
+import { hasBackup } from './share.js';
 import { FRONT_MATS, SWATCHES, WOOD_TINTS, WALL_SWATCHES, TEXTURE_SETS, COUNTER_MATS, FLOOR_MATS } from './materials.js';
 
 // פאנל העריכה בעברית
@@ -363,6 +364,9 @@ export class Editor {
   fileTab() {
     const q = localStorage.getItem('kitchen-quality') || 'auto';
     return [
+      h('h3', {}, 'שליחה ושיתוף'),
+      h('button', { class: 'btn primary', style: 'width:100%', onclick: () => this.app.openShare() }, 'שליחת התכנון / קישור לשיתוף'),
+      hasBackup() ? h('button', { class: 'btn', style: 'width:100%;margin-top:6px', onclick: () => this.app.restoreMine() }, 'חזרה לתכנון הקודם שלי') : null,
       h('h3', {}, 'שמירה'),
       h('p', { class: 'note' }, 'כל שינוי נשמר אוטומטית בדפדפן הזה. כדי להעביר למחשב או לטלפון אחר – ייצא קובץ וייבא אותו שם.'),
       h('div', { class: 'row' },

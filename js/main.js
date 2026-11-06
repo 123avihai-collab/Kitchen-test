@@ -15,6 +15,7 @@ import { Interaction } from './interaction.js';
 import { CameraRig, EYE } from './controls.js';
 import { Measure, Dimensions } from './measure.js';
 import { Editor } from './editor.js';
+import { ShareDialog, loadFromUrl, showSharedBanner, restoreBackup } from './share.js';
 import { disposeTree, isMobile } from './util.js';
 
 // ---------- איכות ----------
@@ -130,6 +131,16 @@ const app = {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     this.toast('הקובץ יוצא');
   },
+  // צילום מוקטן לשליחה (JPEG עד 1280 פיקסלים)
+  captureImage() {
+    render();
+    const k = Math.min(1, 1280 / canvas.width);
+    const c = document.createElement('canvas'); c.width = Math.round(canvas.width * k); c.height = Math.round(canvas.height * k);
+    c.getContext('2d').drawImage(canvas, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.82);
+  },
+  openShare() { share.open(); },
+  restoreMine() { if (restoreBackup()) { this.select(null); this.toast('התכנון שלך שוחזר'); } },
   screenshot() {
     render();
     const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'kitchen.png'; a.click();
@@ -138,6 +149,7 @@ const app = {
 window.__app = { app, store, scene, renderer, camera, rig, inter, lib, get kitchen() { return kitchenG; }, get K() { return lastK; }, quality };
 
 let editor = null;
+let share = null;
 
 function findSelectGroup(sel) {
   if (!sel || !kitchenG) return null;
@@ -305,7 +317,8 @@ function updateUndo() {
 store.on((s, reason) => { updateUndo(); if (reason !== 'history') scheduleRebuild(); });
 
 // ---------- הפעלה ----------
-manager.onLoad = () => {
+manager.onLoad = async () => {
+  const loaded = await loadFromUrl();
   rebuild();
   const s = store.state, iz = islandCenterZ(s);
   camera.position.set(1.9, 1.85, Math.min(s.room.depth - 0.35, iz + 2.7));
@@ -314,6 +327,10 @@ manager.onLoad = () => {
   camera.updateProjectionMatrix();
   rig.orbit.update();
   editor = new Editor(app);
+  share = new ShareDialog(app);
+  document.getElementById('btn-share').addEventListener('click', () => share.open());
+  if (loaded?.state) showSharedBanner(loaded, () => app.restoreMine());
+  else if (loaded?.error) app.toast('לא הצלחתי לפתוח את התכנון ששותף');
   app.setMode('view');
   updateUndo();
   if (!isMobile() && innerWidth > 1100) { document.body.classList.add('panel-open'); syncPanelBtn(); }

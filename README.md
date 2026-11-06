@@ -13,6 +13,10 @@ python3 -m http.server 8000
 Settings → Pages → Build and deployment → Source: **Deploy from a branch** → בוחרים ענף ותיקייה `/ (root)` → Save.
 אין שלב בנייה (build): כל הקבצים, כולל three.js, נמצאים בריפו.
 
+## שיתוף ואיסוף תכנונים
+- כפתור **"שליחת התכנון"** יוצר קישור שהתכנון מקודד בתוכו (וואטסאפ, העתקה, שיתוף).
+- **"שמור ושלח"** שומר את התכנון וצילום מסך ב-Google Drive של בעל האתר, מוסיף שורה בגיליון ושולח מייל. הוראות התקנה: [`apps-script/README.md`](apps-script/README.md). אחרי ההתקנה מעדכנים את `SUBMIT_URL` ב-`js/config.js`.
+
 ## מבנה הקוד
 | קובץ | תפקיד |
 |---|---|
@@ -27,6 +31,8 @@ Settings → Pages → Build and deployment → Source: **Deploy from a branch**
 | `js/controls.js` | סיבוב סביב החדר והליכה בגובה עיניים (מקלדת/ג׳ויסטיק) |
 | `js/measure.js` | כלי מדידה וקווי מידות |
 | `js/editor.js` | פאנל העריכה |
+| `js/share.js`, `js/config.js` | שיתוף בקישור ושליחה ל-Drive |
+| `apps-script/Code.gs` | הסקריפט שקולט הגשות ב-Google Drive |
 
 ## מערכת צירים ויחידות
 מטרים. קיר המטבח ב-z=0, החדר נמשך לכיוון ‎+z. ‏x=0 במרכז קיר המטבח, ‎+x = ימין למי שמסתכל על הקיר (צד החלון).
