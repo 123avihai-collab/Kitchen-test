@@ -70,12 +70,24 @@ lib.preload();
 lib.setAssets(store.assets);
 lib.onAssetLoaded = () => requestRender(true);
 const ctx = {};
-new HDRLoader(manager).setDataType(THREE.FloatType).load('assets/hdri/lebombo_1k.hdr', (t) => {
+function applyEnv(t) {
   // נטרול חלקי של הגוון החם של ה-HDRI (רצפת עץ) כדי שהלבנים יישארו לבנים
   const a = t.image.data;
   for (let i = 0; i < a.length; i += 4) { const l = a[i] * 0.2126 + a[i + 1] * 0.7152 + a[i + 2] * 0.0722; a[i] = a[i] * 0.45 + l * 0.55; a[i + 1] = a[i + 1] * 0.45 + l * 0.55; a[i + 2] = a[i + 2] * 0.45 + l * 0.55 * 1.04; }
   t.needsUpdate = true;
-  t.mapping = THREE.EquirectangularReflectionMapping; scene.environment = t;
+  t.mapping = THREE.EquirectangularReflectionMapping; scene.environment = t; requestRender();
+}
+const hdrLoader = new HDRLoader(manager).setDataType(THREE.FloatType);
+hdrLoader.load('assets/hdri/lebombo_1k.hdr', applyEnv, undefined, () => {
+  // גיבוי: אותו קובץ בקידוד base64 (לאירוח שלא מגיש קבצי ‎.hdr)
+  new THREE.FileLoader(manager).load('assets/hdri/lebombo_1k.hdr.txt', (txt) => {
+    const bin = atob(txt.trim()); const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    const d = hdrLoader.parse(buf.buffer);
+    const t = new THREE.DataTexture(d.data, d.width, d.height, THREE.RGBAFormat, d.type);
+    t.colorSpace = THREE.LinearSRGBColorSpace; t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.flipY = true;
+    applyEnv(t);
+  });
 });
 ctx.outdoorTex = new THREE.TextureLoader(manager).load('assets/hdri/garden.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; t.mapping = THREE.EquirectangularReflectionMapping; });
 ctx.outdoorTex.colorSpace = THREE.SRGBColorSpace;
@@ -314,4 +326,4 @@ manager.onLoad = () => {
   window.__app.ready = true;
   frame();
 };
-manager.onError = (url) => { document.getElementById('load-sub').textContent = `שגיאה בטעינת ${url}`; };
+manager.onError = (url) => { if (!url.endsWith('.hdr')) document.getElementById('load-sub').textContent = `שגיאה בטעינת ${url}`; };
