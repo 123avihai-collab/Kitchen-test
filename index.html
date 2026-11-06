@@ -2,12 +2,33 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
+<meta name="app-version" content="8edb4901">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1c1b1a">
 <title>מטבח תלת-ממדי – ניסוי</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=8edb4901">
 <script type="importmap">
-{ "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/" } }
+{
+ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/",
+  "./js/appliances.js": "./js/appliances.js?v=8edb4901",
+  "./js/cabinets.js": "./js/cabinets.js?v=8edb4901",
+  "./js/config.js": "./js/config.js?v=8edb4901",
+  "./js/controls.js": "./js/controls.js?v=8edb4901",
+  "./js/drag.js": "./js/drag.js?v=8edb4901",
+  "./js/editor.js": "./js/editor.js?v=8edb4901",
+  "./js/interaction.js": "./js/interaction.js?v=8edb4901",
+  "./js/items.js": "./js/items.js?v=8edb4901",
+  "./js/main.js": "./js/main.js?v=8edb4901",
+  "./js/materials.js": "./js/materials.js?v=8edb4901",
+  "./js/measure.js": "./js/measure.js?v=8edb4901",
+  "./js/room.js": "./js/room.js?v=8edb4901",
+  "./js/share.js": "./js/share.js?v=8edb4901",
+  "./js/state.js": "./js/state.js?v=8edb4901",
+  "./js/util.js": "./js/util.js?v=8edb4901"
+ }
+}
 </script>
 </head>
 <body>
@@ -54,6 +75,6 @@
 <input type="file" id="file-import" accept=".json,application/json" hidden>
 <input type="file" id="file-image" accept="image/*" hidden>
 
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/main.js?v=8edb4901"></script>
 </body>
 </html>

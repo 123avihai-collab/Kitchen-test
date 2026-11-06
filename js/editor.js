@@ -419,6 +419,8 @@ export class Editor {
       h('p', { class: 'note' }, 'גבוהה: צללים חדים יותר ו-Ambient Occlusion. בינונית/נמוכה מתאימות לטלפונים חלשים. (רענון הדף)'),
       h('h3', {}, 'קיצורי מקלדת'),
       h('p', { class: 'note', html: 'Ctrl+Z ביטול • Ctrl+Y חזרה • Delete מחיקת מודול נבחר • Esc ביטול בחירה<br>במצב הליכה: W/A/S/D או חיצים, Shift להאצה, גרירה להסתכלות' }),
+      h('h3', {}, 'גרסה'),
+      h('p', { class: 'note', style: 'direction:ltr;text-align:right' }, document.querySelector('meta[name=app-version]')?.content || '—'),
       h('h3', {}, 'קרדיטים'),
       h('p', { class: 'note' }, 'טקסטורות ו-HDRI: Poly Haven ו-ambientCG (רישיון CC0). מנוע: three.js.'),
     ];

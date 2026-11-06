@@ -9,6 +9,9 @@ python3 -m http.server 8000
 ```
 ואז לפתוח את http://localhost:8000
 
+## גרסה ומטמון
+לפני כל commit מריצים `python3 tools/stamp-version.py`. הסקריפט מוסיף לכתובות קובצי ה-JS וה-CSS ב-`index.html` מספר גרסה (`?v=…`) לפי התוכן שלהם, כך שרענון רגיל בדפדפן טוען את הקוד החדש. הגרסה הטעונה מופיעה בטאב "קובץ".
+
 ## פרסום ב-GitHub Pages
 Settings → Pages → Build and deployment → Source: **Deploy from a branch** → בוחרים ענף ותיקייה `/ (root)` → Save.
 אין שלב בנייה (build): כל הקבצים, כולל three.js, נמצאים בריפו.
